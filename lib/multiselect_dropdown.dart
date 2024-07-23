@@ -387,13 +387,13 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
 
       if (selectedOptions != _selectedOptions) {
         _selectedOptions.clear();
-        _selectedOptions.addAll(_controller.selectedOptions.isNotEmpty == true ? _controller.selectedOptions : widget.selectedOptions);
+        _selectedOptions.addAll(selectedOptions);
         _controller.setSelectedOptions(_selectedOptions);
       }
 
       if (disabledOptions != _disabledOptions) {
         _disabledOptions.clear();
-        _disabledOptions.addAll(_controller.disabledOptions.isNotEmpty == true ? _controller.disabledOptions : widget.disabledOptions);
+        _disabledOptions.addAll(disabledOptions);
         _controller.setDisabledOptions(_disabledOptions);
       }
     }
