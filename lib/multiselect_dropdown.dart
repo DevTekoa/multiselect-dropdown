@@ -377,7 +377,7 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
     final selectedOptions = (_controller.selectedOptions.isNotEmpty == true ? _controller.selectedOptions : widget.selectedOptions);
     final disabledOptions = (_controller.disabledOptions.isNotEmpty == true ? _controller.disabledOptions : widget.disabledOptions);
 
-    if (selectedOptions != _selectedOptions && disabledOptions != _disabledOptions) {
+    if (selectedOptions != _selectedOptions || disabledOptions != _disabledOptions) {
       oldWidget.controller?.removeListener(_handleControllerChange);
       _controller = widget.controller ?? MultiSelectController<T>();
 
@@ -396,6 +396,8 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
         _disabledOptions.addAll(disabledOptions);
         _controller.setDisabledOptions(_disabledOptions);
       }
+
+      _controller.addListener(_handleControllerChange);
     }
   }
 
