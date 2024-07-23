@@ -8,7 +8,6 @@ import 'package:http/http.dart';
 import 'package:multi_dropdown/models/network_config.dart';
 import 'package:multi_dropdown/widgets/hint_text.dart';
 import 'package:multi_dropdown/widgets/selection_chip.dart';
-import 'package:multi_dropdown/widgets/single_selected_item.dart';
 
 import 'enum/app_enums.dart';
 import 'models/chip_config.dart';
@@ -27,7 +26,6 @@ class MultiSelectDropDown<T> extends StatefulWidget {
 
   // Hint
   final String hint;
-  final Color? hintColor;
   final double? hintFontSize;
   final TextStyle? hintStyle;
   final EdgeInsetsGeometry? hintPadding;
@@ -179,8 +177,6 @@ class MultiSelectDropDown<T> extends StatefulWidget {
   ///
   /// [hint] is the hint text to be displayed when no option is selected.
   ///
-  /// [hintColor] is the color of the hint text. The default is [Colors.grey.shade300].
-  ///
   /// [hintFontSize] is the font size of the hint text. The default is 14.0.
   ///
   /// [hintStyle] is the style of the hint text.
@@ -233,7 +229,6 @@ class MultiSelectDropDown<T> extends StatefulWidget {
       this.chipConfig = const ChipConfig(),
       this.selectionType = SelectionType.multi,
       this.hint = 'Select',
-      this.hintColor = Colors.grey,
       this.hintFontSize = 14.0,
       this.hintPadding = HintText.hintPaddingDefault,
       this.selectedOptions = const [],
@@ -293,7 +288,6 @@ class MultiSelectDropDown<T> extends StatefulWidget {
       this.chipConfig = const ChipConfig(),
       this.selectionType = SelectionType.multi,
       this.hint = 'Select',
-      this.hintColor = Colors.grey,
       this.hintFontSize = 14.0,
       this.selectedOptions = const [],
       this.disabledOptions = const [],
@@ -374,6 +368,35 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
     });
     _focusNode = widget.focusNode ?? FocusNode();
     _controller = widget.controller ?? MultiSelectController<T>();
+  }
+
+  @override
+  void didUpdateWidget(oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final selectedOptions = (_controller.selectedOptions.isNotEmpty == true ? _controller.selectedOptions : widget.selectedOptions);
+    final disabledOptions = (_controller.disabledOptions.isNotEmpty == true ? _controller.disabledOptions : widget.disabledOptions);
+
+    if (selectedOptions != _selectedOptions && disabledOptions != _disabledOptions) {
+      oldWidget.controller?.removeListener(_handleControllerChange);
+      _controller = widget.controller ?? MultiSelectController<T>();
+
+      _options.clear();
+      _options.addAll(_controller.options.isNotEmpty == true ? _controller.options : widget.options);
+      _controller.setOptions(_options);
+
+      if (selectedOptions != _selectedOptions) {
+        _selectedOptions.clear();
+        _selectedOptions.addAll(_controller.selectedOptions.isNotEmpty == true ? _controller.selectedOptions : widget.selectedOptions);
+        _controller.setSelectedOptions(_selectedOptions);
+      }
+
+      if (disabledOptions != _disabledOptions) {
+        _disabledOptions.clear();
+        _disabledOptions.addAll(_controller.disabledOptions.isNotEmpty == true ? _controller.disabledOptions : widget.disabledOptions);
+        _controller.setDisabledOptions(_disabledOptions);
+      }
+    }
   }
 
   /// Initializes the options, selected options and disabled options.
@@ -535,32 +558,29 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
       );
     }
 
-    if (widget.selectionType == SelectionType.single && !widget.showChipInSingleSelectMode) {
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Padding(
-            padding: EdgeInsets.only(top: 10),
-            child: Text(
-              widget.hint,
-              style: TextStyle(color: widget.hintColor, fontSize: 13),
-            )),
-        Flexible(
-            child: Text(
-          _selectedOptions.first.label,
-          style: widget.singleSelectItemStyle,
-          overflow: TextOverflow.ellipsis,
-        ))
-      ]);
-    }
-
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-          padding: EdgeInsets.only(top: 10),
+          padding: const EdgeInsets.only(top: 10),
           child: Text(
             widget.hint,
-            style: TextStyle(color: widget.hintColor, fontSize: 13),
-          )),
-      SizedBox(height: 30, child: _buildSelectedItems())
-    ]);
+            style: TextStyle(color: widget.hintStyle?.color, fontSize: 13),
+          ),
+        ),
+        if (widget.selectionType == SelectionType.single && !widget.showChipInSingleSelectMode) ...[
+          Flexible(
+            child: Text(
+              _selectedOptions.first.label,
+              style: widget.singleSelectItemStyle,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ] else ...[
+          SizedBox(height: 30, child: _buildSelectedItems())
+        ]
+      ],
+    );
   }
 
   /// return true if any item is selected.
