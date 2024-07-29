@@ -9,12 +9,12 @@ class HintText extends StatelessWidget {
   final EdgeInsetsGeometry? hintPadding;
 
   const HintText({
-    Key? key,
+    super.key,
     this.hintStyle,
     required this.hintText,
     this.hintColor,
     this.hintPadding,
-  }) : super(key: key);
+  });
 
   static const EdgeInsetsGeometry hintPaddingDefault = EdgeInsets.symmetric(horizontal: 10.0);
 

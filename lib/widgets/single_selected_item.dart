@@ -11,8 +11,8 @@ class SingleSelectedItem extends StatelessWidget {
   const SingleSelectedItem({
     required this.label,
     this.style,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
