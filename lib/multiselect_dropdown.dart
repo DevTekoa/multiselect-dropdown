@@ -113,6 +113,13 @@ class MultiSelectDropDown<T> extends StatefulWidget {
   /// [searchEnabled] is the flag to enable search in dropdown. It is used to show search bar in dropdown.
   final bool searchEnabled;
 
+  /// [searchStyle] is the style of the search text.
+  final TextStyle? searchStyle;
+
+  /// Allows to add new temporary option
+  /// [canAddTempOption] is the flag to manually add a temporary option.
+  final bool canAddTempOption;
+
   /// Search label
   /// [searchLabel] is the label for search bar in dropdown.
   final String? searchLabel;
@@ -221,7 +228,7 @@ class MultiSelectDropDown<T> extends StatefulWidget {
   /// ```
 
   const MultiSelectDropDown(
-      {Key? key,
+      {super.key,
       required this.onOptionSelected,
       required this.options,
       this.onOptionRemoved,
@@ -259,6 +266,8 @@ class MultiSelectDropDown<T> extends StatefulWidget {
       this.focusNode,
       this.controller,
       this.searchEnabled = false,
+      this.searchStyle,
+      this.canAddTempOption = false,
       this.dropdownBorderRadius,
       this.dropdownMargin,
       this.dropdownBackgroundColor,
@@ -269,8 +278,7 @@ class MultiSelectDropDown<T> extends StatefulWidget {
       this.searchLabel = 'Search'})
       : networkConfig = null,
         responseParser = null,
-        responseErrorBuilder = null,
-        super(key: key);
+        responseErrorBuilder = null;
 
   /// Constructor for MultiSelectDropDown that fetches the options from a network call.
   /// [networkConfig] is the configuration for the network call.
@@ -278,7 +286,7 @@ class MultiSelectDropDown<T> extends StatefulWidget {
   /// [responseErrorBuilder] is the builder that is used to build the error widget when the network call fails.
 
   const MultiSelectDropDown.network(
-      {Key? key,
+      {super.key,
       required this.onOptionSelected,
       required this.networkConfig,
       required this.responseParser,
@@ -318,6 +326,8 @@ class MultiSelectDropDown<T> extends StatefulWidget {
       this.focusNode,
       this.controller,
       this.searchEnabled = false,
+      this.searchStyle,
+      this.canAddTempOption = false,
       this.dropdownBorderRadius,
       this.dropdownMargin,
       this.dropdownBackgroundColor,
@@ -326,8 +336,7 @@ class MultiSelectDropDown<T> extends StatefulWidget {
       this.singleSelectItemStyle,
       this.optionBuilder,
       this.searchLabel = 'Search'})
-      : options = const [],
-        super(key: key);
+      : options = const [];
 
   @override
   State<MultiSelectDropDown<T>> createState() => _MultiSelectDropDownState<T>();
@@ -378,26 +387,21 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
     final disabledOptions = (_controller.disabledOptions.isNotEmpty == true ? _controller.disabledOptions : widget.disabledOptions);
 
     if (selectedOptions != _selectedOptions || disabledOptions != _disabledOptions) {
-      oldWidget.controller?.removeListener(_handleControllerChange);
-      _controller = widget.controller ?? MultiSelectController<T>();
-
       _options.clear();
-      _options.addAll(_controller.options.isNotEmpty == true ? _controller.options : widget.options);
-      _controller.setOptions(_options);
+      _options.addAll(widget.options);
+      _controller.setOptions(_options, false);
 
       if (selectedOptions != _selectedOptions) {
         _selectedOptions.clear();
         _selectedOptions.addAll(selectedOptions);
-        _controller.setSelectedOptions(_selectedOptions);
+        _controller.setSelectedOptions(_selectedOptions, false);
       }
 
       if (disabledOptions != _disabledOptions) {
         _disabledOptions.clear();
         _disabledOptions.addAll(disabledOptions);
-        _controller.setDisabledOptions(_disabledOptions);
+        _controller.setDisabledOptions(_disabledOptions, false);
       }
-
-      _controller.addListener(_handleControllerChange);
     }
   }
 
@@ -801,7 +805,7 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: TextFormField(
-                                style: widget.hintStyle,
+                                style: widget.searchStyle,
                                 controller: searchController,
                                 onTapOutside: (_) {},
                                 scrollPadding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -825,15 +829,40 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
                                       width: 0.8,
                                     ),
                                   ),
-                                  suffixIcon: IconButton(
-                                    icon: const Icon(Icons.close),
-                                    onPressed: () {
-                                      searchController.clear();
-                                      dropdownState(() {
-                                        options = _options;
-                                      });
-                                    },
-                                  ),
+                                  suffixIcon: widget.canAddTempOption
+                                      ? IconButton(
+                                          icon: const Icon(Icons.add_outlined),
+                                          onPressed: () {
+                                            final ValueItem<T> tempValue = ValueItem<T>(label: searchController.text, value: null);
+                                            options.insert(0, tempValue);
+                                            _options.insert(0, tempValue);
+                                            _controller.value._options.insert(0, tempValue);
+
+                                            dropdownState(() {
+                                              selectedOptions.clear();
+                                              selectedOptions.insert(0, tempValue);
+                                            });
+                                            setState(() {
+                                              _selectedOptions.clear();
+                                              _selectedOptions.insert(0, tempValue);
+                                            });
+                                            _onOutSideTap();
+
+                                            _controller.value._selectedOptions.clear();
+                                            _controller.value._selectedOptions.addAll(_selectedOptions);
+
+                                            widget.onOptionSelected?.call(_selectedOptions);
+                                          },
+                                        )
+                                      : IconButton(
+                                          icon: const Icon(Icons.close),
+                                          onPressed: () {
+                                            searchController.clear();
+                                            dropdownState(() {
+                                              options = _options;
+                                            });
+                                          },
+                                        ),
                                 ),
                                 onChanged: (value) {
                                   dropdownState(() {
@@ -868,7 +897,7 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
                                       _selectedOptions.remove(option);
                                     });
                                     widget.onOptionRemoved?.call(index, option);
-                                    _controller.clearSelection(option);
+                                    _controller.clearSelection(option, false);
                                   } else {
                                     final bool hasReachMax =
                                         widget.maxItems == null ? false : (_selectedOptions.length + 1) > widget.maxItems!;
@@ -1153,7 +1182,7 @@ class MultiSelectController<T> extends ValueNotifier<_MultiSelectController<T>> 
 
   /// clear specific selected option
   /// [MultiSelectController] is used to clear specific selected option.
-  void clearSelection(ValueItem<T> option) {
+  void clearSelection(ValueItem<T> option, [bool notify = true]) {
     if (!value._selectedOptions.contains(option)) return;
 
     if (value._disabledOptions.contains(option)) {
@@ -1165,12 +1194,14 @@ class MultiSelectController<T> extends ValueNotifier<_MultiSelectController<T>> 
     }
 
     value._selectedOptions.remove(option);
-    notifyListeners();
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   /// select the options
   /// [MultiSelectController] is used to select the options.
-  void setSelectedOptions(List<ValueItem<T>> options) {
+  void setSelectedOptions(List<ValueItem<T>> options, [bool notify = true]) {
     if (options.any((element) => value._disabledOptions.contains(element))) {
       throw Exception('Cannot select disabled options');
     }
@@ -1181,7 +1212,10 @@ class MultiSelectController<T> extends ValueNotifier<_MultiSelectController<T>> 
 
     value._selectedOptions.clear();
     value._selectedOptions.addAll(options);
-    notifyListeners();
+
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   /// add selected option
@@ -1201,14 +1235,17 @@ class MultiSelectController<T> extends ValueNotifier<_MultiSelectController<T>> 
 
   /// set disabled options
   /// [MultiSelectController] is used to set disabled options.
-  void setDisabledOptions(List<ValueItem<T>> disabledOptions) {
+  void setDisabledOptions(List<ValueItem<T>> disabledOptions, [bool notify = true]) {
     if (disabledOptions.any((element) => !value._options.contains(element))) {
       throw Exception('Cannot disable options that are not in the options list');
     }
 
     value._disabledOptions.clear();
     value._disabledOptions.addAll(disabledOptions);
-    notifyListeners();
+
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   /// setDisabledOption method
@@ -1224,10 +1261,13 @@ class MultiSelectController<T> extends ValueNotifier<_MultiSelectController<T>> 
 
   /// set options
   /// [MultiSelectController] is used to set options.
-  void setOptions(List<ValueItem<T>> options) {
+  void setOptions(List<ValueItem<T>> options, [bool notify = true]) {
     value._options.clear();
     value._options.addAll(options);
-    notifyListeners();
+
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   /// get disabled options

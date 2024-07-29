@@ -9,11 +9,11 @@ class SelectionChip<T> extends StatelessWidget {
   final ValueItem<T> item;
 
   const SelectionChip({
-    Key? key,
+    super.key,
     required this.chipConfig,
     required this.item,
     required this.onItemDelete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,10 +26,10 @@ class SelectionChip<T> extends StatelessWidget {
       deleteIcon: onItemDelete == null ? null : chipConfig.deleteIcon,
       deleteIconColor: chipConfig.deleteIconColor,
       labelPadding: chipConfig.labelPadding,
-      backgroundColor: onItemDelete == null ? chipConfig.backgroundDisabledColor ?? Theme.of(context).disabledColor:
-          chipConfig.backgroundColor ?? Theme.of(context).primaryColor,
-      labelStyle: chipConfig.labelStyle?.copyWith(color: onItemDelete == null ? chipConfig.labelDisabledColor :
-      chipConfig.labelColor) ??
+      backgroundColor: onItemDelete == null
+          ? chipConfig.backgroundDisabledColor ?? Theme.of(context).disabledColor
+          : chipConfig.backgroundColor ?? Theme.of(context).primaryColor,
+      labelStyle: chipConfig.labelStyle?.copyWith(color: onItemDelete == null ? chipConfig.labelDisabledColor : chipConfig.labelColor) ??
           TextStyle(color: onItemDelete == null ? chipConfig.labelDisabledColor : chipConfig.labelColor, fontSize: 14),
       onDeleted: onItemDelete == null ? null : () => onItemDelete!(item),
       side: chipConfig.borderSide,
