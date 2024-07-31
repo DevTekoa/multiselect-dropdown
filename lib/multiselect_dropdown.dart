@@ -2,6 +2,7 @@ library multiselect_dropdown;
 
 import 'dart:convert';
 
+import 'package:back_button_interceptor/back_button_interceptor.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
@@ -457,6 +458,8 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
   /// Handles the focus change to show/hide the dropdown.
   void _handleFocusChange() {
     if (_focusNode.hasFocus && mounted) {
+      BackButtonInterceptor.add(popInterceptor);
+
       _overlayEntry = _reponseBody != null && widget.networkConfig != null ? _buildNetworkErrorOverlayEntry() : _buildOverlayEntry();
       Overlay.of(context).insert(_overlayEntry!);
       _updateSelection();
@@ -464,6 +467,8 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
     }
 
     if ((_searchFocusNode == null || _searchFocusNode?.hasFocus == false) && _overlayEntry != null) {
+      BackButtonInterceptor.remove(popInterceptor);
+
       _overlayEntry?.remove();
       _overlayEntry = null;
     }
@@ -631,6 +636,11 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
     }
 
     super.dispose();
+  }
+
+  bool popInterceptor(bool stopDefaultButtonEvent, RouteInfo info) {
+    _focusNode.unfocus();
+    return true;
   }
 
   /// Build the selected items for the dropdown.
@@ -919,6 +929,9 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
                                     _selectedOptions.clear();
                                     _selectedOptions.add(option);
                                   });
+                                  if (!_focusNode.hasFocus) {
+                                    _focusNode.requestFocus();
+                                  }
                                   _focusNode.unfocus();
                                 }
 
