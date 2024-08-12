@@ -1,9 +1,11 @@
 library multiselect_dropdown;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:back_button_interceptor/back_button_interceptor.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:multi_dropdown/models/network_config.dart';
@@ -361,6 +363,10 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
   late final FocusNode _focusNode;
   final LayerLink _layerLink = LayerLink();
 
+  late StreamSubscription<bool> keyboardSubscription;
+  bool _keyboardOpened = false;
+  bool _overlayRepositioned = false;
+
   /// Response from the network call.
   dynamic _reponseBody;
 
@@ -378,6 +384,13 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
     });
     _focusNode = widget.focusNode ?? FocusNode();
     _controller = widget.controller ?? MultiSelectController<T>();
+
+    var keyboardVisibilityController = KeyboardVisibilityController();
+    keyboardSubscription = keyboardVisibilityController.onChange.listen((bool visible) {
+      setState(() {
+        _keyboardOpened = visible;
+      });
+    });
   }
 
   @override
@@ -404,6 +417,27 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
         _controller.setDisabledOptions(_disabledOptions, false);
       }
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    if (_overlayRepositioned) {
+      _focusNode.removeListener(_handleFocusChange);
+      _searchFocusNode?.removeListener(_handleFocusChange);
+
+      _searchFocusNode?.unfocus();
+
+      Timer(const Duration(milliseconds: 1), () {
+        _focusNode.requestFocus();
+        _searchFocusNode?.requestFocus();
+
+        _overlayRepositioned = false;
+        _focusNode.addListener(_handleFocusChange);
+        _searchFocusNode?.addListener(_handleFocusChange);
+      });
+    }
+
+    super.didChangeDependencies();
   }
 
   /// Initializes the options, selected options and disabled options.
@@ -457,7 +491,7 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
 
   /// Handles the focus change to show/hide the dropdown.
   void _handleFocusChange() {
-    if (_focusNode.hasFocus && mounted) {
+    if (_focusNode.hasFocus && mounted && !_overlayRepositioned) {
       BackButtonInterceptor.add(popInterceptor);
 
       _overlayEntry = _reponseBody != null && widget.networkConfig != null ? _buildNetworkErrorOverlayEntry() : _buildOverlayEntry();
@@ -491,9 +525,7 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
     var size = renderBox?.size ?? Size.zero;
     var offset = renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
 
-    final availableHeight = MediaQuery.of(context).size.height - (offset.dy + size.height + (widget.searchEnabled ? 60 : 0));
-
-    return [size, availableHeight < widget.dropdownHeight];
+    return [size, offset.dy];
   }
 
   @override
@@ -635,11 +667,13 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
       _controller.dispose();
     }
 
+    keyboardSubscription.cancel();
+
     super.dispose();
   }
 
   bool popInterceptor(bool stopDefaultButtonEvent, RouteInfo info) {
-    _focusNode.unfocus();
+    _onOutSideTap();
     return true;
   }
 
@@ -761,8 +795,11 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
     final values = _calculateOffsetSize();
     // Get the size from the first item in the values list
     final size = values[0] as Size;
-    // Get the showOnTop value from the second item in the values list
-    final showOnTop = values[1] as bool;
+    // Get the position of current field
+    final fieldOffset = values[1] as double;
+    // Get the showOnTop value
+    final availableHeight = MediaQuery.of(context).size.height - (fieldOffset + size.height + (widget.searchEnabled ? 60 : 0));
+    bool showOnTop = availableHeight < widget.dropdownHeight;
 
     return OverlayEntry(builder: (context) {
       List<ValueItem<T>> options = _options;
@@ -770,6 +807,95 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
       final searchController = TextEditingController();
 
       return StatefulBuilder(builder: ((context, dropdownState) {
+        Widget buildSearchBox() {
+          return ColoredBox(
+            color: widget.dropdownBackgroundColor ?? Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextFormField(
+                style: widget.searchStyle,
+                controller: searchController,
+                onTapOutside: (_) {},
+                scrollPadding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                focusNode: _searchFocusNode,
+                decoration: InputDecoration(
+                  fillColor: widget.searchBackgroundColor ?? Colors.grey.shade200,
+                  isDense: true,
+                  filled: true,
+                  hintText: widget.searchLabel,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(widget.fieldBorderRadius ?? 12),
+                    borderSide: BorderSide(
+                      color: Colors.grey.shade300,
+                      width: 0.8,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(widget.fieldBorderRadius ?? 12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).primaryColor,
+                      width: 0.8,
+                    ),
+                  ),
+                  suffixIcon: widget.canAddTempOption
+                      ? IconButton(
+                          icon: const Icon(Icons.add_outlined),
+                          onPressed: () {
+                            final ValueItem<T> tempValue = ValueItem<T>(label: searchController.text, value: null);
+                            options.insert(0, tempValue);
+                            _options.insert(0, tempValue);
+                            _controller.value._options.insert(0, tempValue);
+
+                            dropdownState(() {
+                              selectedOptions.clear();
+                              selectedOptions.insert(0, tempValue);
+                            });
+                            setState(() {
+                              _selectedOptions.clear();
+                              _selectedOptions.insert(0, tempValue);
+                            });
+                            _onOutSideTap();
+
+                            _controller.value._selectedOptions.clear();
+                            _controller.value._selectedOptions.addAll(_selectedOptions);
+
+                            widget.onOptionSelected?.call(_selectedOptions);
+                          },
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            searchController.clear();
+                            dropdownState(() {
+                              options = _options;
+                            });
+                          },
+                        ),
+                ),
+                onChanged: (value) {
+                  dropdownState(() {
+                    options = _options.where((element) => element.label.toLowerCase().contains(value.toLowerCase())).toList();
+                  });
+                },
+              ),
+            ),
+          );
+        }
+
+        double? margin = widget.dropdownMargin;
+        if (_keyboardOpened) {
+          final keyboardOffset = MediaQuery.of(context).size.height - MediaQuery.of(context).viewInsets.bottom;
+
+          if (fieldOffset + 10 > keyboardOffset) {
+            if (showOnTop) {
+              margin = fieldOffset - keyboardOffset;
+            }
+          } else if (!showOnTop && availableHeight - MediaQuery.of(context).viewInsets.bottom < widget.dropdownHeight) {
+            showOnTop = true;
+            _overlayRepositioned = true;
+          }
+        }
+
         return Stack(
           children: [
             Positioned.fill(
@@ -786,7 +912,7 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
               showWhenUnlinked: true,
               targetAnchor: showOnTop ? Alignment.topLeft : Alignment.bottomLeft,
               followerAnchor: showOnTop ? Alignment.bottomLeft : Alignment.topLeft,
-              offset: widget.dropdownMargin != null ? Offset(0, showOnTop ? -widget.dropdownMargin! : widget.dropdownMargin!) : Offset.zero,
+              offset: margin != null ? Offset(0, showOnTop ? -margin : margin) : Offset.zero,
               child: Material(
                   color: widget.dropdownBackgroundColor ?? Colors.white,
                   elevation: 4,
@@ -809,85 +935,13 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (widget.searchEnabled) ...[
-                          ColoredBox(
-                            color: widget.dropdownBackgroundColor ?? Colors.white,
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: TextFormField(
-                                style: widget.searchStyle,
-                                controller: searchController,
-                                onTapOutside: (_) {},
-                                scrollPadding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-                                focusNode: _searchFocusNode,
-                                decoration: InputDecoration(
-                                  fillColor: widget.searchBackgroundColor ?? Colors.grey.shade200,
-                                  isDense: true,
-                                  filled: true,
-                                  hintText: widget.searchLabel,
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(widget.fieldBorderRadius ?? 12),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey.shade300,
-                                      width: 0.8,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(widget.fieldBorderRadius ?? 12),
-                                    borderSide: BorderSide(
-                                      color: Theme.of(context).primaryColor,
-                                      width: 0.8,
-                                    ),
-                                  ),
-                                  suffixIcon: widget.canAddTempOption
-                                      ? IconButton(
-                                          icon: const Icon(Icons.add_outlined),
-                                          onPressed: () {
-                                            final ValueItem<T> tempValue = ValueItem<T>(label: searchController.text, value: null);
-                                            options.insert(0, tempValue);
-                                            _options.insert(0, tempValue);
-                                            _controller.value._options.insert(0, tempValue);
-
-                                            dropdownState(() {
-                                              selectedOptions.clear();
-                                              selectedOptions.insert(0, tempValue);
-                                            });
-                                            setState(() {
-                                              _selectedOptions.clear();
-                                              _selectedOptions.insert(0, tempValue);
-                                            });
-                                            _onOutSideTap();
-
-                                            _controller.value._selectedOptions.clear();
-                                            _controller.value._selectedOptions.addAll(_selectedOptions);
-
-                                            widget.onOptionSelected?.call(_selectedOptions);
-                                          },
-                                        )
-                                      : IconButton(
-                                          icon: const Icon(Icons.close),
-                                          onPressed: () {
-                                            searchController.clear();
-                                            dropdownState(() {
-                                              options = _options;
-                                            });
-                                          },
-                                        ),
-                                ),
-                                onChanged: (value) {
-                                  dropdownState(() {
-                                    options =
-                                        _options.where((element) => element.label.toLowerCase().contains(value.toLowerCase())).toList();
-                                  });
-                                },
-                              ),
-                            ),
-                          ),
+                        if (widget.searchEnabled && !showOnTop) ...[
+                          buildSearchBox(),
                           const Divider(
                             height: 1,
                           ),
                         ],
-                        Expanded(
+                        Flexible(
                           child: ListView.separated(
                             separatorBuilder: (_, __) => widget.optionSeparator ?? const SizedBox(height: 0),
                             shrinkWrap: true,
@@ -961,6 +1015,12 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
                             },
                           ),
                         ),
+                        if (widget.searchEnabled && showOnTop) ...[
+                          const Divider(
+                            height: 1,
+                          ),
+                          buildSearchBox()
+                        ],
                       ],
                     ),
                   )),
