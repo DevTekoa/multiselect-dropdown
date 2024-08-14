@@ -503,6 +503,8 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
     if ((_searchFocusNode == null || _searchFocusNode?.hasFocus == false) && _overlayEntry != null) {
       BackButtonInterceptor.remove(popInterceptor);
 
+      // _overlayRepositioned = false;
+
       _overlayEntry?.remove();
       _overlayEntry = null;
     }
@@ -799,7 +801,7 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
     final fieldOffset = values[1] as double;
     // Get the showOnTop value
     final availableHeight = MediaQuery.of(context).size.height - (fieldOffset + size.height + (widget.searchEnabled ? 60 : 0));
-    bool showOnTop = availableHeight < widget.dropdownHeight;
+    bool showOnTop = availableHeight < 100;
 
     return OverlayEntry(builder: (context) {
       List<ValueItem<T>> options = _options;
@@ -890,7 +892,7 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
             if (showOnTop) {
               margin = fieldOffset - keyboardOffset;
             }
-          } else if (!showOnTop && availableHeight - MediaQuery.of(context).viewInsets.bottom < widget.dropdownHeight) {
+          } else if (!showOnTop && availableHeight - MediaQuery.of(context).viewInsets.bottom < 100) {
             showOnTop = true;
             _overlayRepositioned = true;
           }
