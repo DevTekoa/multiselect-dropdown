@@ -503,8 +503,6 @@ class _MultiSelectDropDownState<T> extends State<MultiSelectDropDown<T>> {
     if ((_searchFocusNode == null || _searchFocusNode?.hasFocus == false) && _overlayEntry != null) {
       BackButtonInterceptor.remove(popInterceptor);
 
-      // _overlayRepositioned = false;
-
       _overlayEntry?.remove();
       _overlayEntry = null;
     }
