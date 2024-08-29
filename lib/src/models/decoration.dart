@@ -11,6 +11,8 @@ class SearchFieldDecoration {
   /// [focusedBorder] is the border of the search field when it is focused. The default value is OutlineInputBorder().
   ///
   /// [searchIcon] is the icon to display in the search field. The default value is Icon(Icons.search).
+  ///
+  /// [textStyle] is the style of the search field
   const SearchFieldDecoration({
     this.hintText = 'Search',
     this.border = const OutlineInputBorder(
@@ -22,6 +24,7 @@ class SearchFieldDecoration {
       borderRadius: BorderRadius.all(Radius.circular(12)),
     ),
     this.searchIcon = const Icon(Icons.search),
+    this.textStyle,
   });
 
   /// The hint text to display in the search field.
@@ -34,7 +37,10 @@ class SearchFieldDecoration {
   final InputBorder? focusedBorder;
 
   /// The icon to display in the search field.
-  final Icon searchIcon;
+  final Widget searchIcon;
+
+  /// The style of the search field.
+  final TextStyle? textStyle;
 }
 
 /// Represents the decoration for the dropdown items.
@@ -49,7 +55,7 @@ class DropdownItemDecoration {
   ///
   /// [selectedTextColor] is the text color of the selected dropdown item. The default value is white.
   ///
-  /// [textColor] is the text color of the dropdown item. The default value is black.
+  /// [textStyle] is the text style of the dropdown item.
   ///
   /// [disabledTextColor] is the text color of the disabled dropdown item. The default value is black.
   ///
@@ -61,7 +67,7 @@ class DropdownItemDecoration {
     this.disabledBackgroundColor,
     this.selectedBackgroundColor,
     this.selectedTextColor,
-    this.textColor,
+    this.textStyle,
     this.disabledTextColor,
     this.selectedIcon = const Icon(Icons.check),
     this.disabledIcon,
@@ -79,8 +85,8 @@ class DropdownItemDecoration {
   /// The text color of the selected dropdown item.
   final Color? selectedTextColor;
 
-  /// The text color of the dropdown item.
-  final Color? textColor;
+  /// The text style of the dropdown item.
+  final TextStyle? textStyle;
 
   /// The text color of the disabled dropdown item.
   final Color? disabledTextColor;
@@ -174,6 +180,8 @@ class FieldDecoration {
   /// [padding] is the padding around the dropdown field.
   ///
   /// [backgroundColor] is the background color of the dropdown field.
+  ///
+  /// [singleSelectItemStyle] is the style of field text when the selection type is 'single'.
   const FieldDecoration({
     this.labelText,
     this.hintText = 'Select',
@@ -190,6 +198,7 @@ class FieldDecoration {
     this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     this.backgroundColor,
     this.showClearIcon = true,
+    this.singleSelectItemStyle,
   });
 
   /// The label text to display above the dropdown field.
@@ -236,6 +245,9 @@ class FieldDecoration {
 
   /// show clear icon or not in the dropdown field
   final bool showClearIcon;
+
+  /// the style of field text when the selection type is 'single'.
+  final TextStyle? singleSelectItemStyle;
 }
 
 /// Configuration class for customizing the appearance of chips in the multi-select dropdown.
