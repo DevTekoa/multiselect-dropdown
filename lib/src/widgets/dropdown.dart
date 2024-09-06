@@ -20,6 +20,7 @@ class _Dropdown<T> extends StatelessWidget {
     this.singleSelect = false,
     this.searchController,
     this.showOnTop = false,
+    this.noItemsFoundMessage,
   });
 
   /// The decoration of the dropdown.
@@ -63,6 +64,9 @@ class _Dropdown<T> extends StatelessWidget {
 
   /// Whether the overlay will be showed on top.
   final bool showOnTop;
+
+  /// The message displayed when the search returns no items.
+  final String? noItemsFoundMessage;
 
   int get _selectedCount => items.where((element) => element.selected).length;
 
@@ -117,7 +121,7 @@ class _Dropdown<T> extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
-                    'No items found',
+                    noItemsFoundMessage ?? 'No items found',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium,
                   ),

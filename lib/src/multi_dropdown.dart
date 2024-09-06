@@ -92,6 +92,7 @@ class MultiDropdown<T extends Object> extends StatefulWidget {
   /// The [canAddTempOption] is the flag to manually add a temporary option.
   /// Allows to add new temporary option
   ///
+  /// The [noItemsFoundMessage] is the message displayed when the search returns no items.
   ///
   const MultiDropdown({
     required this.items,
@@ -116,6 +117,7 @@ class MultiDropdown<T extends Object> extends StatefulWidget {
     this.onSearchChange,
     this.closeOnBackButton = false,
     this.canAddTempOption = false,
+    this.noItemsFoundMessage,
     super.key,
   })  : future = null,
         responsiveSearch = false;
@@ -167,6 +169,7 @@ class MultiDropdown<T extends Object> extends StatefulWidget {
     this.closeOnBackButton = false,
     this.responsiveSearch = false,
     this.canAddTempOption = false,
+    this.noItemsFoundMessage,
     super.key,
   }) : items = const [];
 
@@ -246,6 +249,9 @@ class MultiDropdown<T extends Object> extends StatefulWidget {
   /// Allows to add new temporary option
   final bool canAddTempOption;
 
+  /// The message displayed when the search returns no items.
+  final String? noItemsFoundMessage;
+
   @override
   State<MultiDropdown<T>> createState() => _MultiDropdownState<T>();
 }
@@ -319,7 +325,7 @@ class _MultiDropdownState<T extends Object> extends State<MultiDropdown<T>> {
       rootBackDispatcher.createChildBackButtonDispatcher()
         ..addCallback(() {
           if (_dropdownController.isOpen) {
-            _dropdownController.closeDropdown();
+            _closeDropdown();
           }
 
           return Future.value(true);
@@ -337,12 +343,12 @@ class _MultiDropdownState<T extends Object> extends State<MultiDropdown<T>> {
       final items = await widget.future!();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _loadingController.stop();
-        if (widget.responsiveSearch) {
+        if (widget.responsiveSearch && !widget.singleSelect) {
           _dropdownController
             .._searchQuery = '.'
             ..setItemsKeepingSelecteds(items);
         } else {
-          _dropdownController.setItems(items);
+          _dropdownController.setItems(items, setFilteredItems: widget.responsiveSearch);
         }
       });
     } catch (e) {
@@ -425,7 +431,8 @@ class _MultiDropdownState<T extends Object> extends State<MultiDropdown<T>> {
             final renderBoxSize = renderBox.size;
             final renderBoxOffset = renderBox.localToGlobal(Offset.zero);
 
-            final availableHeight = MediaQuery.of(context).size.height - renderBoxOffset.dy - renderBoxSize.height;
+            final availableHeight =
+                MediaQuery.of(context).size.height - renderBoxOffset.dy - renderBoxSize.height - (widget.searchEnabled ? 60 : 0) - 100;
 
             final showOnTop = availableHeight < widget.dropdownDecoration.maxHeight;
 
@@ -466,6 +473,7 @@ class _MultiDropdownState<T extends Object> extends State<MultiDropdown<T>> {
                         }
                       },
                       showOnTop: showOnTop,
+                      noItemsFoundMessage: widget.noItemsFoundMessage,
                     ),
                   ),
                 ),
@@ -506,7 +514,7 @@ class _MultiDropdownState<T extends Object> extends State<MultiDropdown<T>> {
 
   void _handleDropdownItemTap(DropdownItem<T> item) {
     if (widget.singleSelect) {
-      _dropdownController._toggleOnly(item);
+      _dropdownController._toggleOnly(item, toggleFiltered: widget.responsiveSearch);
     } else {
       if (widget.responsiveSearch) {
         _dropdownController._selectFiltered(item);
@@ -518,7 +526,7 @@ class _MultiDropdownState<T extends Object> extends State<MultiDropdown<T>> {
 
     if (widget.singleSelect) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _dropdownController.closeDropdown();
+        _closeDropdown();
       });
     }
   }
@@ -694,6 +702,14 @@ class _MultiDropdownState<T extends Object> extends State<MultiDropdown<T>> {
 
   void _handleOutsideTap() {
     if (!_dropdownController.isOpen) return;
+
+    _closeDropdown();
+  }
+
+  void _closeDropdown() {
+    if (widget.responsiveSearch) {
+      _dropdownController.setItemsWhere((e) => e.selected);
+    }
 
     _dropdownController.closeDropdown();
   }
