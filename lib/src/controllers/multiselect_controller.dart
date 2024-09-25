@@ -43,7 +43,11 @@ class MultiSelectController<T> extends ChangeNotifier {
 
   /// sets the list of dropdown items.
   /// It replaces the existing list of dropdown items.
-  void setItems(List<DropdownItem<T>> options, {bool setFilteredItems = false}) {
+  void setItems(
+    List<DropdownItem<T>> options, {
+    bool setFilteredItems = false,
+    bool notify = true,
+  }) {
     _items
       ..clear()
       ..addAll(options);
@@ -51,8 +55,11 @@ class MultiSelectController<T> extends ChangeNotifier {
     if (setFilteredItems) {
       _filteredItems = List.from(_items);
     }
-    notifyListeners();
-    _onSelectionChanged?.call(selectedItems);
+
+    if (notify) {
+      notifyListeners();
+      _onSelectionChanged?.call(selectedItems);
+    }
   }
 
   void setItemsWhere(bool Function(DropdownItem<T> item) predicate) {
