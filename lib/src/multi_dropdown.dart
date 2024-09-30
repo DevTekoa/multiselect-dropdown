@@ -36,7 +36,7 @@ typedef FutureRequest<T> = Future<List<DropdownItem<T>>> Function();
 
 /// A multiselect dropdown widget.
 ///
-class MultiDropdown<T extends Object> extends StatefulWidget {
+class MultiDropdown<T extends Object?> extends StatefulWidget {
   /// Creates a multiselect dropdown widget.
   ///
   /// The [items] are the list of dropdown items. It is required.
@@ -256,7 +256,7 @@ class MultiDropdown<T extends Object> extends StatefulWidget {
   State<MultiDropdown<T>> createState() => _MultiDropdownState<T>();
 }
 
-class _MultiDropdownState<T extends Object> extends State<MultiDropdown<T>> {
+class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
   final LayerLink _layerLink = LayerLink();
 
   final OverlayPortalController _portalController = OverlayPortalController();
