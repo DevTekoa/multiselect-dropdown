@@ -170,8 +170,9 @@ class MultiDropdown<T extends Object?> extends StatefulWidget {
     this.responsiveSearch = false,
     this.canAddTempOption = false,
     this.noItemsFoundMessage,
+    this.items = const [],
     super.key,
-  }) : items = const [];
+  });
 
   /// The list of dropdown items.
   final List<DropdownItem<T>> items;
@@ -285,8 +286,14 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
       throw StateError('DropdownController is disposed');
     }
 
-    if (widget.future != null && !widget.responsiveSearch) {
-      unawaited(handleFuture());
+    if (widget.future != null) {
+      if (!widget.responsiveSearch) {
+        unawaited(handleFuture());
+      } else {
+        _dropdownController
+          .._searchQuery = '.'
+          ..setItemsKeepingSelecteds(widget.items);
+      }
     }
 
     if (!_dropdownController._initialized) {
