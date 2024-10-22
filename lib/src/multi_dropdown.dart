@@ -275,6 +275,8 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
   // the global key for the form field state to update the form field state when the controller changes
   final GlobalKey<FormFieldState<List<DropdownItem<T>>?>> _formFieldKey = GlobalKey();
 
+  Timer? _debounce;
+
   @override
   void initState() {
     super.initState();
@@ -287,7 +289,7 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
     }
 
     if (widget.future != null) {
-      if (!widget.responsiveSearch) {
+      if (!widget.responsiveSearch || widget.items.isEmpty) {
         unawaited(handleFuture());
       } else {
         _dropdownController
@@ -355,7 +357,10 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
             .._searchQuery = '.'
             ..setItemsKeepingSelecteds(items);
         } else {
-          _dropdownController.setItems(items, setFilteredItems: widget.responsiveSearch);
+          _dropdownController.setItems(
+            items,
+            setFilteredItems: widget.responsiveSearch,
+          );
         }
       });
     } catch (e) {
@@ -412,6 +417,8 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
     if (widget.focusNode == null) {
       _focusNode.dispose();
     }
+
+    _debounce?.cancel();
 
     super.dispose();
   }
@@ -472,12 +479,15 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
                       maxSelections: widget.maxSelections,
                       singleSelect: widget.singleSelect,
                       onSearchChange: (value) async {
-                        if (widget.future != null && widget.responsiveSearch) {
-                          widget.onSearchChange?.call(value);
-                          await handleFuture();
-                        } else {
-                          _dropdownController.setSearchQuery(value);
-                        }
+                        if (_debounce?.isActive ?? false) _debounce?.cancel();
+                        _debounce = Timer(const Duration(milliseconds: 500), () async {
+                          if (widget.future != null && widget.responsiveSearch) {
+                            widget.onSearchChange?.call(value);
+                            await handleFuture();
+                          } else {
+                            _dropdownController.setSearchQuery(value);
+                          }
+                        });
                       },
                       showOnTop: showOnTop,
                       noItemsFoundMessage: widget.noItemsFoundMessage,
@@ -703,6 +713,12 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
     }
 
     if (_portalController.isShowing && _dropdownController.isOpen) return;
+
+    if (widget.future != null) {
+      if (widget.responsiveSearch && _dropdownController.selectedItems.isEmpty) {
+        unawaited(handleFuture());
+      }
+    }
 
     _dropdownController.openDropdown();
   }
