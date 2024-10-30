@@ -47,6 +47,7 @@ class MultiSelectController<T> extends ChangeNotifier {
     List<DropdownItem<T>> options, {
     bool setFilteredItems = false,
     bool notify = true,
+    bool selectionChanged = true,
   }) {
     _items
       ..clear()
@@ -58,7 +59,9 @@ class MultiSelectController<T> extends ChangeNotifier {
 
     if (notify) {
       notifyListeners();
-      _onSelectionChanged?.call(selectedItems);
+      if (selectionChanged) {
+        _onSelectionChanged?.call(selectedItems);
+      }
     }
   }
 
@@ -69,7 +72,10 @@ class MultiSelectController<T> extends ChangeNotifier {
   /// sets the list of dropdown items.
   /// It keep the selected items, and changes the filtered items
   /// It's used in dropdown future mode
-  void setItemsKeepingSelecteds(List<DropdownItem<T>> options) {
+  void setItemsKeepingSelecteds(
+    List<DropdownItem<T>> options, {
+    bool selectionChanged = true,
+  }) {
     _filteredItems
       ..clear()
       ..addAll(options);
@@ -82,7 +88,9 @@ class MultiSelectController<T> extends ChangeNotifier {
     }
 
     notifyListeners();
-    _onSelectionChanged?.call(selectedItems);
+    if (selectionChanged) {
+      _onSelectionChanged?.call(selectedItems);
+    }
   }
 
   /// Adds a dropdown item to the list of dropdown items.
