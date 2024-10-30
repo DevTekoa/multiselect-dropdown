@@ -289,19 +289,25 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
     }
 
     if (widget.future != null) {
-      if (!widget.responsiveSearch || widget.items.isEmpty) {
+      if (!widget.responsiveSearch) {
         unawaited(handleFuture());
       } else {
         _dropdownController
           .._searchQuery = '.'
-          ..setItemsKeepingSelecteds(widget.items);
+          ..setItemsKeepingSelecteds(
+            widget.items,
+            selectionChanged: false,
+          );
       }
     }
 
     if (!_dropdownController._initialized) {
       _dropdownController
         .._initialize()
-        ..setItems(widget.items);
+        ..setItems(
+          widget.items,
+          selectionChanged: false,
+        );
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -598,6 +604,7 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
         child: const Icon(Icons.clear),
         onTap: () {
           _dropdownController.clearAll();
+          _dropdownController.setSearchQuery('');
           _formFieldKey.currentState?.didChange(_dropdownController.selectedItems);
         },
       );
