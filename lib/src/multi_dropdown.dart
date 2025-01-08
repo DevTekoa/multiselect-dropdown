@@ -366,6 +366,7 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
           _dropdownController.setItems(
             items,
             setFilteredItems: widget.responsiveSearch,
+            selectionChanged: false,
           );
         }
       });
@@ -741,6 +742,7 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
       _dropdownController.setItemsWhere((e) => e.selected);
     }
 
+    widget.searchController?.clear();
     _dropdownController.closeDropdown();
   }
 
