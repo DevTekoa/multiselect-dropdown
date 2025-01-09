@@ -486,17 +486,17 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
                       maxSelections: widget.maxSelections,
                       singleSelect: widget.singleSelect,
                       onSearchChange: (value) async {
-                        if (_dropdownController.isOpen) {
-                          if (_debounce?.isActive ?? false) _debounce?.cancel();
-                          _debounce = Timer(const Duration(milliseconds: 500), () async {
+                        if (_debounce?.isActive ?? false) _debounce?.cancel();
+                        _debounce = Timer(const Duration(milliseconds: 500), () async {
+                          if (_dropdownController.isOpen) {
                             if (widget.future != null && widget.responsiveSearch) {
                               widget.onSearchChange?.call(value);
                               await handleFuture();
                             } else {
                               _dropdownController.setSearchQuery(value);
                             }
-                          });
-                        }
+                          }
+                        });
                       },
                       showOnTop: showOnTop,
                       noItemsFoundMessage: widget.noItemsFoundMessage,
