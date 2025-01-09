@@ -366,6 +366,7 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
           _dropdownController.setItems(
             items,
             setFilteredItems: widget.responsiveSearch,
+            selectionChanged: false,
           );
         }
       });
@@ -487,11 +488,13 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
                       onSearchChange: (value) async {
                         if (_debounce?.isActive ?? false) _debounce?.cancel();
                         _debounce = Timer(const Duration(milliseconds: 500), () async {
-                          if (widget.future != null && widget.responsiveSearch) {
-                            widget.onSearchChange?.call(value);
-                            await handleFuture();
-                          } else {
-                            _dropdownController.setSearchQuery(value);
+                          if (_dropdownController.isOpen) {
+                            if (widget.future != null && widget.responsiveSearch) {
+                              widget.onSearchChange?.call(value);
+                              await handleFuture();
+                            } else {
+                              _dropdownController.setSearchQuery(value);
+                            }
                           }
                         });
                       },
@@ -740,8 +743,8 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
     if (widget.responsiveSearch) {
       _dropdownController.setItemsWhere((e) => e.selected);
     }
-
     _dropdownController.closeDropdown();
+    widget.searchController?.clear();
   }
 
   void _showError(String message) {
