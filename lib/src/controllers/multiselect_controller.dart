@@ -65,6 +65,7 @@ class MultiSelectController<T> extends ChangeNotifier {
     }
   }
 
+  /// sets the list of dropdown items.
   void setItemsWhere(bool Function(DropdownItem<T> item) predicate) {
     _items = _items.where((element) => predicate(element)).toList();
   }
