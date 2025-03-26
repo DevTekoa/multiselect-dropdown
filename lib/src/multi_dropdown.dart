@@ -118,7 +118,6 @@ class MultiDropdown<T extends Object?> extends StatefulWidget {
     this.closeOnBackButton = false,
     this.canAddTempOption = false,
     this.noItemsFoundMessage,
-    this.asDialog = true,
     super.key,
   })  : future = null,
         responsiveSearch = false;
@@ -171,7 +170,6 @@ class MultiDropdown<T extends Object?> extends StatefulWidget {
     this.responsiveSearch = false,
     this.canAddTempOption = false,
     this.noItemsFoundMessage,
-    this.asDialog = true,
     this.items = const [],
     super.key,
   });
@@ -255,9 +253,6 @@ class MultiDropdown<T extends Object?> extends StatefulWidget {
   /// The message displayed when the search returns no items.
   final String? noItemsFoundMessage;
 
-  /// Indicates if the dropdown should be displayed as a dialog.
-  final bool asDialog;
-
   @override
   State<MultiDropdown<T>> createState() => _MultiDropdownState<T>();
 }
@@ -277,8 +272,6 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
     _loadingController,
   ]);
 
-  late ValueNotifier<List<DropdownItem<T>>> _itemsNotifier;
-
   // the global key for the form field state to update the form field state when the controller changes
   final GlobalKey<FormFieldState<List<DropdownItem<T>>?>> _formFieldKey = GlobalKey();
 
@@ -287,10 +280,6 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
   @override
   void initState() {
     super.initState();
-    _itemsNotifier = ValueNotifier<List<DropdownItem<T>>>(_dropdownController.items);
-    _dropdownController.addListener(() {
-      _itemsNotifier.value = _dropdownController.items;
-    });
     _initializeController();
   }
 
@@ -392,10 +381,10 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
     _formFieldKey.currentState?.didChange(_dropdownController.selectedItems);
 
     if (_dropdownController.isOpen) {
-      if (!widget.asDialog) _portalController.show();
+      _portalController.show();
     } else {
       _dropdownController._clearSearchQuery();
-      if (!widget.asDialog) _portalController.hide();
+      _portalController.hide();
     }
   }
 
@@ -425,7 +414,6 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
 
   @override
   void dispose() {
-    _itemsNotifier.dispose();
     _dropdownController.removeListener(_controllerListener);
 
     if (widget.controller == null) {
@@ -451,127 +439,101 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
       initialValue: _dropdownController.selectedItems,
       enabled: widget.enabled,
       builder: (_) {
-        if (widget.asDialog) {
-          return ListenableBuilder(
-            listenable: _listenable,
-            builder: (_, __) {
-              return InkWell(
-                mouseCursor: widget.enabled ? SystemMouseCursors.grab : SystemMouseCursors.forbidden,
-                onTap: widget.enabled ? _handleTap : null,
-                focusNode: _focusNode,
-                canRequestFocus: widget.enabled,
-                borderRadius: _getFieldBorderRadius(),
-                child: InputDecorator(
-                  isEmpty: _dropdownController.selectedItems.isEmpty,
-                  isFocused: _dropdownController.isOpen,
-                  decoration: _buildDecoration(),
-                  textAlign: TextAlign.start,
-                  textAlignVertical: TextAlignVertical.center,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: _buildField(),
+        return OverlayPortal(
+          controller: _portalController,
+          overlayChildBuilder: (_) {
+            final renderBox = context.findRenderObject() as RenderBox?;
+
+            if (renderBox == null || !renderBox.attached) {
+              _showError('Failed to build the dropdown\nCode: 08');
+              return const SizedBox();
+            }
+
+            final renderBoxSize = renderBox.size;
+            final renderBoxOffset = renderBox.localToGlobal(Offset.zero);
+
+            final availableHeight =
+                MediaQuery.of(context).size.height - renderBoxOffset.dy - renderBoxSize.height - (widget.searchEnabled ? 60 : 0) - 100;
+
+            final showOnTop = availableHeight < widget.dropdownDecoration.maxHeight;
+
+            final stack = Stack(
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: _handleOutsideTap,
                   ),
                 ),
-              );
-            },
-          );
-        } else {
-          return OverlayPortal(
-            controller: _portalController,
-            overlayChildBuilder: (_) {
-              final renderBox = context.findRenderObject() as RenderBox?;
-
-              if (renderBox == null || !renderBox.attached) {
-                _showError('Failed to build the dropdown\nCode: 08');
-                return const SizedBox();
-              }
-
-              final renderBoxSize = renderBox.size;
-              final renderBoxOffset = renderBox.localToGlobal(Offset.zero);
-
-              final availableHeight =
-                  MediaQuery.of(context).size.height - renderBoxOffset.dy - renderBoxSize.height - (widget.searchEnabled ? 60 : 0) - 100;
-
-              final showOnTop = availableHeight < widget.dropdownDecoration.maxHeight;
-
-              final stack = Stack(
-                children: [
-                  Positioned.fill(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTap: _handleOutsideTap,
-                    ),
-                  ),
-                  CompositedTransformFollower(
-                    link: _layerLink,
-                    showWhenUnlinked: false,
-                    targetAnchor: showOnTop ? Alignment.topLeft : Alignment.bottomLeft,
-                    followerAnchor: showOnTop ? Alignment.bottomLeft : Alignment.topLeft,
-                    offset: widget.dropdownDecoration.marginTop == 0 ? Offset.zero : Offset(0, widget.dropdownDecoration.marginTop),
-                    child: RepaintBoundary(
-                      child: _Dropdown<T>(
-                        decoration: widget.dropdownDecoration,
-                        onItemTap: _handleDropdownItemTap,
-                        width: renderBoxSize.width,
-                        items: _dropdownController.items,
-                        searchEnabled: widget.searchEnabled,
-                        dropdownItemDecoration: widget.dropdownItemDecoration,
-                        itemBuilder: widget.itemBuilder,
-                        itemSeparator: widget.itemSeparator,
-                        searchDecoration: widget.searchDecoration,
-                        searchController: widget.searchController,
-                        maxSelections: widget.maxSelections,
-                        singleSelect: widget.singleSelect,
-                        onSearchChange: (value) async {
-                          if (_debounce?.isActive ?? false) _debounce?.cancel();
-                          _debounce = Timer(const Duration(milliseconds: 500), () async {
-                            if (_dropdownController.isOpen) {
-                              if (widget.future != null && widget.responsiveSearch) {
-                                widget.onSearchChange?.call(value);
-                                await handleFuture();
-                              } else {
-                                _dropdownController.setSearchQuery(value);
-                              }
+                CompositedTransformFollower(
+                  link: _layerLink,
+                  showWhenUnlinked: false,
+                  targetAnchor: showOnTop ? Alignment.topLeft : Alignment.bottomLeft,
+                  followerAnchor: showOnTop ? Alignment.bottomLeft : Alignment.topLeft,
+                  offset: widget.dropdownDecoration.marginTop == 0 ? Offset.zero : Offset(0, widget.dropdownDecoration.marginTop),
+                  child: RepaintBoundary(
+                    child: _Dropdown<T>(
+                      decoration: widget.dropdownDecoration,
+                      onItemTap: _handleDropdownItemTap,
+                      width: renderBoxSize.width,
+                      items: _dropdownController.items,
+                      searchEnabled: widget.searchEnabled,
+                      dropdownItemDecoration: widget.dropdownItemDecoration,
+                      itemBuilder: widget.itemBuilder,
+                      itemSeparator: widget.itemSeparator,
+                      searchDecoration: widget.searchDecoration,
+                      searchController: widget.searchController,
+                      maxSelections: widget.maxSelections,
+                      singleSelect: widget.singleSelect,
+                      onSearchChange: (value) async {
+                        if (_debounce?.isActive ?? false) _debounce?.cancel();
+                        _debounce = Timer(const Duration(milliseconds: 500), () async {
+                          if (_dropdownController.isOpen) {
+                            if (widget.future != null && widget.responsiveSearch) {
+                              widget.onSearchChange?.call(value);
+                              await handleFuture();
+                            } else {
+                              _dropdownController.setSearchQuery(value);
                             }
-                          });
-                        },
-                        showOnTop: showOnTop,
-                        noItemsFoundMessage: widget.noItemsFoundMessage,
-                      ),
+                          }
+                        });
+                      },
+                      showOnTop: showOnTop,
+                      noItemsFoundMessage: widget.noItemsFoundMessage,
                     ),
                   ),
-                ],
-              );
-              return stack;
-            },
-            child: CompositedTransformTarget(
-              link: _layerLink,
-              child: ListenableBuilder(
-                listenable: _listenable,
-                builder: (_, __) {
-                  return InkWell(
-                    mouseCursor: widget.enabled ? SystemMouseCursors.grab : SystemMouseCursors.forbidden,
-                    onTap: widget.enabled ? _handleTap : null,
-                    focusNode: _focusNode,
-                    canRequestFocus: widget.enabled,
-                    borderRadius: _getFieldBorderRadius(),
-                    child: InputDecorator(
-                      isEmpty: _dropdownController.selectedItems.isEmpty,
-                      isFocused: _dropdownController.isOpen,
-                      decoration: _buildDecoration(),
-                      textAlign: TextAlign.start,
-                      textAlignVertical: TextAlignVertical.center,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: _buildField(),
-                      ),
+                ),
+              ],
+            );
+            return stack;
+          },
+          child: CompositedTransformTarget(
+            link: _layerLink,
+            child: ListenableBuilder(
+              listenable: _listenable,
+              builder: (_, __) {
+                return InkWell(
+                  mouseCursor: widget.enabled ? SystemMouseCursors.grab : SystemMouseCursors.forbidden,
+                  onTap: widget.enabled ? _handleTap : null,
+                  focusNode: _focusNode,
+                  canRequestFocus: widget.enabled,
+                  borderRadius: _getFieldBorderRadius(),
+                  child: InputDecorator(
+                    isEmpty: _dropdownController.selectedItems.isEmpty,
+                    isFocused: _dropdownController.isOpen,
+                    decoration: _buildDecoration(),
+                    textAlign: TextAlign.start,
+                    textAlignVertical: TextAlignVertical.center,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: _buildField(),
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
-          );
-        }
+          ),
+        );
       },
     );
   }
@@ -591,7 +553,6 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
     if (widget.singleSelect) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _closeDropdown();
-        if (widget.asDialog) Navigator.pop(context);
       });
     }
   }
@@ -645,9 +606,8 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
       return GestureDetector(
         child: const Icon(Icons.clear),
         onTap: () {
-          _dropdownController
-            ..clearAll()
-            ..setSearchQuery('');
+          _dropdownController.clearAll();
+          _dropdownController.setSearchQuery('');
           _formFieldKey.currentState?.didChange(_dropdownController.selectedItems);
         },
       );
@@ -771,70 +731,12 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
     }
 
     _dropdownController.openDropdown();
-
-    if (widget.asDialog) {
-      final modalWidth = MediaQuery.of(context).size.width - 40;
-
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTap: _handleOutsideTap,
-                ),
-              ),
-              RepaintBoundary(
-                child: Center(
-                  child: ValueListenableBuilder<List<DropdownItem<T>>>(
-                    valueListenable: _itemsNotifier,
-                    builder: (_, items, __) {
-                      return _Dropdown<T>(
-                        decoration: widget.dropdownDecoration,
-                        onItemTap: _handleDropdownItemTap,
-                        width: modalWidth,
-                        items: items,
-                        searchEnabled: widget.searchEnabled,
-                        dropdownItemDecoration: widget.dropdownItemDecoration,
-                        itemBuilder: widget.itemBuilder,
-                        itemSeparator: widget.itemSeparator,
-                        searchDecoration: widget.searchDecoration,
-                        searchController: widget.searchController,
-                        maxSelections: widget.maxSelections,
-                        singleSelect: widget.singleSelect,
-                        onSearchChange: (value) async {
-                          if (_debounce?.isActive ?? false) _debounce?.cancel();
-                          _debounce = Timer(const Duration(milliseconds: 500), () async {
-                            if (_dropdownController.isOpen) {
-                              if (widget.future != null && widget.responsiveSearch) {
-                                widget.onSearchChange?.call(value);
-                                await handleFuture();
-                              } else {
-                                _dropdownController.setSearchQuery(value);
-                              }
-                            }
-                          });
-                        },
-                        noItemsFoundMessage: widget.noItemsFoundMessage,
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    }
   }
 
   void _handleOutsideTap() {
     if (!_dropdownController.isOpen) return;
 
     _closeDropdown();
-    if (widget.asDialog) Navigator.pop(context);
   }
 
   void _closeDropdown() {
