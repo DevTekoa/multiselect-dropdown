@@ -577,23 +577,23 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
   }
 
   void _handleDropdownItemTap(DropdownItem<T> item) {
-    if (widget.singleSelect) {
-      _dropdownController._toggleOnly(item, toggleFiltered: widget.responsiveSearch);
-    } else {
-      if (widget.responsiveSearch) {
-        _dropdownController._selectFiltered(item);
-      } else {
-        _dropdownController.toggleWhere((element) => element == item);
-      }
-    }
-    _formFieldKey.currentState?.didChange(_dropdownController.selectedItems);
-
-    if (widget.singleSelect) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _closeDropdown();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.singleSelect) {
         if (widget.asDialog) Navigator.pop(context);
-      });
-    }
+        _dropdownController._toggleOnly(item, toggleFiltered: widget.responsiveSearch);
+      } else {
+        if (widget.responsiveSearch) {
+          _dropdownController._selectFiltered(item);
+        } else {
+          _dropdownController.toggleWhere((element) => element == item);
+        }
+      }
+      _formFieldKey.currentState?.didChange(_dropdownController.selectedItems);
+
+      if (widget.singleSelect) {
+        _closeDropdown();
+      }
+    });
   }
 
   InputDecoration _buildDecoration() {
@@ -775,7 +775,7 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
     if (widget.asDialog) {
       final modalWidth = MediaQuery.of(context).size.width - 40;
 
-      showDialog(
+      showDialog<void>(
         context: context,
         builder: (BuildContext context) {
           return Stack(
