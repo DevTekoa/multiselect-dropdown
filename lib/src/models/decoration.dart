@@ -169,6 +169,8 @@ class FieldDecoration {
   ///
   /// [hintStyle] is the style of the hint text.
   ///
+  /// [floatingLabelStyle] is the style of the floating label text.
+  ///
   /// [borderRadius] is the border radius of the dropdown field. The default value is 12.
   ///
   /// [animateSuffixIcon] is whether to animate the suffix icon or not when dropdown is opened/closed. The default value is true.
@@ -191,9 +193,10 @@ class FieldDecoration {
     this.errorBorder,
     this.suffixIcon = const Icon(Icons.arrow_drop_down),
     this.prefixIcon,
-    this.labelStyle,
     this.borderRadius = 12,
+    this.labelStyle,
     this.hintStyle,
+    this.floatingLabelStyle,
     this.animateSuffixIcon = true,
     this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     this.backgroundColor,
@@ -230,6 +233,9 @@ class FieldDecoration {
 
   /// The style of the hint text.
   final TextStyle? hintStyle;
+
+  /// The style of the floating label text.
+  final TextStyle? floatingLabelStyle;
 
   /// The border radius of the dropdown field.
   final double borderRadius;

@@ -622,6 +622,7 @@ class _MultiDropdownState<T extends Object?> extends State<MultiDropdown<T>> {
       labelStyle: fieldDecoration.labelStyle,
       hintText: fieldDecoration.hintText,
       hintStyle: fieldDecoration.hintStyle,
+      floatingLabelStyle: fieldDecoration.floatingLabelStyle,
       errorText: _formFieldKey.currentState?.errorText,
       filled: fieldDecoration.backgroundColor != null,
       fillColor: fieldDecoration.backgroundColor,
