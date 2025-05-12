@@ -49,9 +49,9 @@ class MultiSelectController<T> extends ChangeNotifier {
     bool notify = true,
     bool selectionChanged = true,
   }) {
-    _items
-      ..clear()
-      ..addAll(options);
+    // Changed of '.clear()' to '=[]' to update the list when the dropdown is open as a dialog.
+    _items = [];
+    _items.addAll(options);
 
     if (setFilteredItems) {
       _filteredItems = List.from(_items);
