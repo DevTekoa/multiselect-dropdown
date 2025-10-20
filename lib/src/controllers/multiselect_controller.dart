@@ -77,9 +77,8 @@ class MultiSelectController<T> extends ChangeNotifier {
     List<DropdownItem<T>> options, {
     bool selectionChanged = true,
   }) {
-    _filteredItems
-      ..clear()
-      ..addAll(options);
+    _filteredItems = [];
+    _filteredItems.addAll(options);
 
     for (final filteredItem in _filteredItems) {
       final item = _items.firstWhereOrNull((e) => e.value == filteredItem.value);
@@ -178,6 +177,7 @@ class MultiSelectController<T> extends ChangeNotifier {
     final filteredIndex = _filteredItems.indexWhere((e) => e.value == item.value);
     if (filteredIndex > -1) {
       _filteredItems[filteredIndex].selected = !_filteredItems[filteredIndex].selected;
+      _filteredItems = List.from(_filteredItems);
     }
 
     notifyListeners();
