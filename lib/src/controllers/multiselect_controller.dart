@@ -173,6 +173,7 @@ class MultiSelectController<T> extends ChangeNotifier {
     } else {
       _items.add(item.copyWith(selected: true));
     }
+    _items = List.from(_items);
 
     final filteredIndex = _filteredItems.indexWhere((e) => e.value == item.value);
     if (filteredIndex > -1) {
