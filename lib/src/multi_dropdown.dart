@@ -6,6 +6,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:multi_dropdown/src/helpers/extensions.dart';
 
 part 'controllers/future_controller.dart';
 part 'controllers/multiselect_controller.dart';
