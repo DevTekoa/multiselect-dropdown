@@ -261,12 +261,12 @@ class MultiSelectController<T> extends ChangeNotifier {
 
   // ignore: use_setters_to_change_properties
   void _setOnSelectionChange(OnSelectionChanged<DropdownItem<T>>? onSelectionChanged) {
-    this._onSelectionChanged = onSelectionChanged;
+    _onSelectionChanged = onSelectionChanged;
   }
 
   // ignore: use_setters_to_change_properties
   void _setOnSearchChange(OnSearchChanged? onSearchChanged) {
-    this._onSearchChanged = onSearchChanged;
+    _onSearchChanged = onSearchChanged;
   }
 
   /// sets the search query.
@@ -278,7 +278,7 @@ class MultiSelectController<T> extends ChangeNotifier {
     } else {
       _filteredItems = _items
           .where(
-            (item) => item.label.toLowerCase().contains(_searchQuery.toLowerCase()),
+            (item) => item.label.normalizeText().contains(_searchQuery.normalizeText()),
           )
           .toList();
     }
